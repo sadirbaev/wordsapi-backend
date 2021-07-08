@@ -1,0 +1,13 @@
+{
+  "server": {
+    "address": ":8000"
+  },
+  "context": {
+    "timeout": 2
+  },
+  "elasticsearch": {
+    "host": "192.168.100.54",
+    "port": "9200",
+    "index": "words3"
+  }
+}
