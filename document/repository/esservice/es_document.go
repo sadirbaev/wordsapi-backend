@@ -41,7 +41,20 @@ func NewESDocumentRepository(es *elastic.Client) domain.DocumentRepository {
 }
 
 func (rx *esDocumentRepository) Create(ctx context.Context, document *domain.Document) error {
-	panic("implement me")
+	var index = viper.GetString(`elasticsearch.index`)
+	body, err := json.Marshal(document)
+	if err != nil {
+		return err
+	}
+	contentString := string(body)
+	doc := strings.Replace(document.Word, " ", "_", -1)
+	_, err = rx.ES.Index().
+		Index(index).
+		OpType("create").
+		BodyString(contentString).
+		Id(doc).
+		Do(ctx)
+	return err
 }
 
 func (rx *esDocumentRepository) SearchWord(ctx context.Context, word string) ([]domain.DocumentResponse, error) {
@@ -60,8 +73,7 @@ func (rx *esDocumentRepository) SearchWord(ctx context.Context, word string) ([]
 	var res []domain.DocumentResponse
 	for _, data := range result.Hits.Hits {
 		doc := &domain.DocumentResponse{}
-		err = json.Unmarshal(data.Source, doc)
-		if err == nil {
+		if err = json.Unmarshal(data.Source, doc); err == nil {
 			doc.Score = *data.Score
 			res = append(res, *doc)
 		}
@@ -80,7 +92,7 @@ func (rx *esDocumentRepository) SearchSentence(ctx context.Context, sentence str
 				Match: match{
 					Fuzzy: fuzzy{
 						Examples: examples{
-							Fuzziness: "2",
+							Fuzziness: "1",
 							Value:     word,
 						},
 					},
@@ -104,7 +116,7 @@ func (rx *esDocumentRepository) SearchSentence(ctx context.Context, sentence str
 	if err != nil {
 		return nil, err
 	}
-	var res []domain.DocumentResponse
+	res := []domain.DocumentResponse{}
 	for _, data := range result.Hits.Hits {
 		doc := &domain.DocumentResponse{}
 		err = json.Unmarshal(data.Source, doc)

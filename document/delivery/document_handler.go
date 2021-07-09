@@ -3,6 +3,7 @@ package delivery
 import (
 	"fmt"
 	"github.com/labstack/echo/v4"
+	"gopkg.in/go-playground/validator.v9"
 	"net/http"
 	"wordsapi/domain"
 )
@@ -26,7 +27,7 @@ func (rx *DocumentHandler) Search(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, fmt.Sprintf("Send QueryParam `word` or QueryParam `sentence` to search"))
 	}
 	ctx := c.Request().Context()
-	if word == ""{
+	if word == "" {
 		documents, err := rx.documentUsecase.SearchSentence(ctx, sentence)
 		if err != nil {
 			return c.JSON(http.StatusInternalServerError, fmt.Sprintf("Error occured while searching word"))
@@ -34,7 +35,7 @@ func (rx *DocumentHandler) Search(c echo.Context) error {
 		return c.JSON(http.StatusOK, documents)
 	}
 
-	if sentence == ""{
+	if sentence == "" {
 		documents, err := rx.documentUsecase.SearchWord(ctx, word)
 		if err != nil {
 			return c.JSON(http.StatusInternalServerError, fmt.Sprintf("Error occured while searching sentence"))
@@ -44,7 +45,31 @@ func (rx *DocumentHandler) Search(c echo.Context) error {
 	return nil
 }
 
+func (rx *DocumentHandler) Create(c echo.Context) error {
+	document, err := IsRequestValid(c, &domain.Document{})
+	if document == nil {
+		return c.JSON(http.StatusBadRequest, err)
+	}
+	doc := document.(*domain.Document)
+	ctx := c.Request().Context()
+	err = rx.documentUsecase.Create(ctx, doc)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, err)
+	}
+	return c.JSON(http.StatusOK, "Document was successfully added")
+}
 
-func (rx *DocumentHandler) Create(ctx echo.Context) error {
-	return nil
+func IsRequestValid(c echo.Context, o interface{}) (validated interface{}, err error) {
+
+	err = c.Bind(&o)
+	if err != nil {
+		return nil, c.JSON(http.StatusUnprocessableEntity, err.Error())
+	}
+	validate := validator.New()
+	err = validate.Struct(o)
+	if err != nil {
+		return nil, c.JSON(http.StatusBadRequest, err.Error())
+	}
+
+	return o, err
 }

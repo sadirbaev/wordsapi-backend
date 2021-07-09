@@ -17,7 +17,7 @@ type App struct {
 	documentUsecase domain.DocumentUsecase
 }
 
-func NewServer(es *elastic.Client) *App  {
+func NewServer(es *elastic.Client) *App {
 	timeoutContext := time.Duration(viper.GetInt("context.timeout")) * time.Second
 	newDocumentRepo := documentRepo.NewESDocumentRepository(es)
 	return &App{
@@ -25,9 +25,8 @@ func NewServer(es *elastic.Client) *App  {
 	}
 }
 
-func (rx *App) Run() error  {
+func (rx *App) Run() error {
 	e := echo.New()
-
 	middL := middleware.InitMiddleware()
 	e.Use(middL.CORS)
 	g := e.Group("/api")
